@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.cheebeez.radio_player_example"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
