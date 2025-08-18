@@ -102,11 +102,6 @@ class RadioPlayerPlugin: FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.success(null)
                 }
 
-                "stop" -> {
-                    controller.stop()
-                    result.success(null)
-                }
-
                 "setCustomMetadata" -> {
                     val artist = call.argument<String>("artist")
                     val title = call.argument<String>("title")
