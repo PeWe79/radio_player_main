@@ -46,7 +46,7 @@ class RadioPlayerService: NSObject {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-
+            print("RadioPlayerService: Failed to configure AVAudioSession: \(error.localizedDescription)")
         }
 
         // Configures remote command center controls (e.g., lock screen controls).
