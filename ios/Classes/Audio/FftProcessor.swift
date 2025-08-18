@@ -113,15 +113,12 @@ class FftProcessor {
         if sr > 0 {
             if needsRebuild || sr != sampleRate {
                 sampleRate = sr
-                // FIX: Dispatch state rebuild to the same serial queue as FFT processing
-                // to prevent data races on shared arrays (bandEdges, binWeights).
                 processingQueue.async { [weak self] in
                     self?.rebuildDerivedState()
                 }
                 needsRebuild = false
             }
         } else if needsRebuild {
-            // FIX: Dispatch state rebuild to the same serial queue as FFT processing.
             processingQueue.async { [weak self] in
                 self?.rebuildDerivedState()
             }
