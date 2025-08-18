@@ -14,6 +14,7 @@ import UIKit
 public class RadioPlayerPlugin: NSObject, FlutterPlugin {
     private lazy var player: RadioPlayerService = RadioPlayerService()
     private var remoteCommandStreamHandler: RemoteCommandStreamHandler?
+    private var visualizerStreamHandler: VisualizerStreamHandler?
 
     /// Registers the plugin with the Flutter engine.
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -35,6 +36,11 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
         let remoteCommandChannel = FlutterEventChannel(name: "radio_player/remoteCommandEvents", binaryMessenger: registrar.messenger())
         instance.remoteCommandStreamHandler = RemoteCommandStreamHandler()
         remoteCommandChannel.setStreamHandler(instance.remoteCommandStreamHandler)
+
+        // Setup event channel for visualizer data.
+        let visualizerChannel = FlutterEventChannel(name: "radio_player/visualizerEvents", binaryMessenger: registrar.messenger())
+        instance.visualizerStreamHandler = VisualizerStreamHandler(playerService: instance.player)
+        visualizerChannel.setStreamHandler(instance.visualizerStreamHandler)
     }
 
     /// Handles method calls received from the Flutter side.
@@ -86,6 +92,15 @@ public class RadioPlayerPlugin: NSObject, FlutterPlugin {
                     return
                 }
                 player.setNavigationControls(showNext: showNext, showPrevious: showPrevious)
+                result(nil)
+
+            case "setVisualizerEnabled":
+                guard let args = call.arguments as? [String: Bool],
+                      let enabled = args["enabled"] else {
+                    result(nil)
+                    return
+                }
+                player.setVisualizerEnabled(enabled)
                 result(nil)
 
             default:

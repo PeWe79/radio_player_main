@@ -9,6 +9,8 @@
 
 import MediaPlayer
 import AVKit
+import MediaToolbox
+import CoreMedia
 
 /// Manages the AVPlayer instance for streaming radio playback and handles audio session configuration.
 class RadioPlayerService: NSObject {
@@ -20,6 +22,11 @@ class RadioPlayerService: NSObject {
 
     weak var playbackStateDelegate: RadioPlayerPlaybackStateDelegate?
     weak var metadataDelegate: RadioPlayerMetadataDelegate?
+
+    private var fftProcessor: FftProcessor?
+    private var isVisualizerEnabled = true
+    weak var visualizerDelegate: RadioPlayerVisualizerDelegate?
+    private var tapProcessingFormat: AudioStreamBasicDescription?
 
     var parseStreamMetadata: Bool = true
     var lookupOnlineArtwork: Bool = false
@@ -39,7 +46,7 @@ class RadioPlayerService: NSObject {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            print("RadioPlayerSevice: Failed to set up audio session: \(error)")
+
         }
 
         // Configures remote command center controls (e.g., lock screen controls).
@@ -73,6 +80,10 @@ class RadioPlayerService: NSObject {
         // Sets up observers for system notifications like audio interruptions.
         NotificationCenter.default.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, 
                 object: AVAudioSession.sharedInstance())
+
+        // Sets up the FFT processor for the audio visualizer. 
+        self.fftProcessor = FftProcessor()
+        self.fftProcessor?.delegate = self
     }
 
     deinit {
@@ -108,6 +119,9 @@ class RadioPlayerService: NSObject {
         let metaOutput = AVPlayerItemMetadataOutput(identifiers: nil)
         metaOutput.setDelegate(self, queue: DispatchQueue.main)
         playerItem.add(metaOutput)
+
+        // Apply audio tap if visualizer is enabled.
+        updateAudioTap()
     }
 
     /// Updates the player's metadata with new track information.
@@ -180,11 +194,13 @@ class RadioPlayerService: NSObject {
         player.pause()
         player.replaceCurrentItem(with: nil)
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        setVisualizerEnabled(false)
 
         streamTitle = nil
         streamUrl = nil
         defaultArtwork = nil
         metadataHash = nil
+
     }
 
     /// Updates the visibility of the next and previous track remote command buttons.
@@ -250,11 +266,98 @@ class RadioPlayerService: NSObject {
 
             // Handle any other interruption types, including future ones.
             @unknown default:
-                print("Unknown AVAudioSession.InterruptionType encountered: \(type.rawValue)")
                 break
         }
     }
 
+    /// Enables or disables the audio visualizer tap.
+    public func setVisualizerEnabled(_ enabled: Bool) {
+        if isVisualizerEnabled == enabled { return }
+        isVisualizerEnabled = enabled
+        
+        // If the processor wasn't created, try to create it again.
+        if fftProcessor == nil {
+            fftProcessor = FftProcessor()
+        }
+        fftProcessor?.delegate = enabled ? self : nil
+        
+        updateAudioTap()
+    }
+
+    /// Applies or removes the MTAudioProcessingTap from the current player item.
+    private func updateAudioTap() {
+        guard let playerItem = player.currentItem,
+            let audioTrack = playerItem.asset.tracks(withMediaType: .audio).first else {
+            return
+        }
+
+        // Remove the audioMix to disable the tap.
+        if !isVisualizerEnabled {
+            playerItem.audioMix = nil
+            return
+        }
+        
+        // Create the tap with the appropriate callbacks.
+        var callbacks = MTAudioProcessingTapCallbacks(
+            version: kMTAudioProcessingTapCallbacksVersion_0,
+            clientInfo: Unmanaged.passUnretained(self).toOpaque(),
+            init: { tap, clientInfo, storageOut in
+                // Store clientInfo (a pointer to self) in the tap's storage.
+                storageOut.pointee = clientInfo
+            },
+            finalize: nil,
+            prepare: { tap, maxFrames, processingFormat in
+                // Retrieve self from storage and save the audio processing format.
+                let svc = Unmanaged<RadioPlayerService>
+                    .fromOpaque(MTAudioProcessingTapGetStorage(tap))
+                    .takeUnretainedValue()
+                svc.tapProcessingFormat = processingFormat.pointee
+            },
+            unprepare: { tap in
+                // Clear the saved processing format.
+                let svc = Unmanaged<RadioPlayerService>
+                    .fromOpaque(MTAudioProcessingTapGetStorage(tap))
+                    .takeUnretainedValue()
+                svc.tapProcessingFormat = nil
+            },
+            process: { tap, numberFrames, flags, bufferListInOut, numberFramesOut, flagsOut in
+                // Retrieve self from storage.
+                let svc = Unmanaged<RadioPlayerService>
+                    .fromOpaque(MTAudioProcessingTapGetStorage(tap))
+                    .takeUnretainedValue()
+
+                // Get the source audio data.
+                var status = MTAudioProcessingTapGetSourceAudio(tap, numberFrames, bufferListInOut, &flagsOut.pointee, nil, &numberFramesOut.pointee)
+
+                guard status == noErr, let asbd = svc.tapProcessingFormat else {
+                    return
+                }
+
+                // Pass the data to the processor for analysis.
+                svc.fftProcessor?.process(
+                    bufferList: bufferListInOut,
+                    frames: UInt32(numberFramesOut.pointee),
+                    asbd: asbd
+                )
+            }
+        )
+
+        var tap: Unmanaged<MTAudioProcessingTap>?
+        let status = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
+        
+        guard status == noErr, let createdTap = tap else {
+            return
+        }
+        
+        // Create an audioMix and attach the tap.
+        let audioMix = AVMutableAudioMix()
+        let inputParameters = AVMutableAudioMixInputParameters(track: audioTrack)
+        inputParameters.audioTapProcessor = createdTap.takeRetainedValue()
+        audioMix.inputParameters = [inputParameters]
+        
+        // Apply the audioMix to the playerItem.
+        playerItem.audioMix = audioMix
+}
 }
 
 /// This extension handles timed metadata received from the audio stream.
@@ -288,5 +391,12 @@ extension RadioPlayerService: AVPlayerItemMetadataOutputPushDelegate {
 
         // Update metadata
         setMetadata(artist: artist, songTitle: songTitle, artworkUrl: artworkUrlFromIcy)
+    }
+}
+
+// This is necessary so that the FftProcessor can pass data back to the RadioPlayerService.
+extension RadioPlayerService: RadioPlayerVisualizerDelegate {
+    func didProcessFft(bands: [Int]) {
+        self.visualizerDelegate?.didProcessFft(bands: bands)
     }
 }

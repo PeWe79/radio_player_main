@@ -18,3 +18,8 @@ protocol RadioPlayerPlaybackStateDelegate: AnyObject {
 protocol RadioPlayerMetadataDelegate: AnyObject {
     func radioPlayerDidUpdateMetadata(artist: String?, title: String?, artworkUrl: String?, artworkData: Data?)
 }
+
+/// Delegate protocol for visualizer data updates.
+protocol RadioPlayerVisualizerDelegate: AnyObject {
+    func didProcessFft(bands: [Int])
+}
