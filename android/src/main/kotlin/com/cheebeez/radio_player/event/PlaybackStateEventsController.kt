@@ -13,6 +13,12 @@ import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /// Manages the EventChannel for player state events.
 class PlaybackStateEventsController : EventChannelController, Player.Listener {
@@ -20,6 +26,7 @@ class PlaybackStateEventsController : EventChannelController, Player.Listener {
     private var eventSink: EventChannel.EventSink? = null
     private var mediaController: MediaController? = null
     private var previousStateString: String? = null
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     // Called when the player's readiness to play or its intention to play changes.
     override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -45,6 +52,15 @@ class PlaybackStateEventsController : EventChannelController, Player.Listener {
             Player.STATE_IDLE -> "paused" 
             Player.STATE_ENDED -> "paused"
             else -> "unknown"
+        }
+
+        // Send zero data to the visualizer when not playing.
+        if (newStateString != "playing") {
+            scope.launch {
+                delay(100) 
+                val zeroBands = List(16) { 0 } 
+                VisualizerEventsController.sendData(zeroBands)
+            }
         }
 
         // Send the playback state only if it has changed since the last time it was sent.
