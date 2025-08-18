@@ -166,17 +166,12 @@ The plugin can process the audio stream in real-time to provide data for an audi
 Since this feature consumes additional resources, it is recommended to enable it only when the visualizer is visible.
 
 ```dart
-late StreamSubscription<List<int>> _visualizerSubscription;
 List<int>? _visualizerData;
 
-@override
-void initState() {
-  super.initState()
-  RadioPlayer.setVisualizerEnabled(true);
-  _visualizerSubscription = RadioPlayer.visualizerStream.listen((value) {
-    setState(() { _visualizerData = value; });
-  });
-}
+RadioPlayer.setVisualizerEnabled(true);
+RadioPlayer.visualizerStream.listen((value) {
+setState(() { _visualizerData = value; });
+});
 ```
  
 ### Volume Control
