@@ -163,27 +163,27 @@ The process involves two steps:
 
 The plugin can process the audio stream in real-time to provide the data needed to create an audio visualizer. This can consume additional resources, so it is recommended to enable it only when the visualizer is visible to the user.
 
-    ```dart
-    // Emits a `List<int>` of 16 frequency band amplitudes (0-255) from low to high.
-    late StreamSubscription<List<int>> _visualizerSubscription;
-    List<int>? _visualizerData;
-    
-    @override
-    void initState() {
-      super.initState();
-      RadioPlayer.setVisualizerEnabled(true);
-      _visualizerSubscription = RadioPlayer.visualizerStream.listen((value) {
-        setState(() { _visualizerData = value; });
-      });
-    }
-    
-    @override
-    void dispose() {
-      _visualizerSubscription.cancel();
-      RadioPlayer.setVisualizerEnabled(false);
-      super.dispose();
-    }
-    ```
+```dart
+// Emits a `List<int>` of 16 frequency band amplitudes (0-255) from low to high.
+late StreamSubscription<List<int>> _visualizerSubscription;
+List<int>? _visualizerData;
+
+@override
+void initState() {
+  super.initState();
+  RadioPlayer.setVisualizerEnabled(true);
+  _visualizerSubscription = RadioPlayer.visualizerStream.listen((value) {
+    setState(() { _visualizerData = value; });
+  });
+}
+
+@override
+void dispose() {
+  _visualizerSubscription.cancel();
+  RadioPlayer.setVisualizerEnabled(false);
+  super.dispose();
+}
+```
       
 ### Volume Control
 
