@@ -30,10 +30,16 @@ class PlaybackStateStreamHandler: NSObject, FlutterStreamHandler, RadioPlayerPla
 
     /// Relays player state changes from the player service to Flutter.
     func radioPlayerDidChangePlaybackState(playbackState: String) {
-            if previousPlaybackState != playbackState {
-                previousPlaybackState = playbackState
-                self.eventSink?(playbackState)
-            }
+        if previousPlaybackState != playbackState {
+            previousPlaybackState = playbackState
+            self.eventSink?(playbackState)
+        }
+
+        // Clear the visualizer when playback stops.
+        if playbackState != "playing" {
+            let zeroBands = [Int](repeating: 0, count: RadioPlayerService.visualizerBandsCount)
+            playerService?.sendVisualizerData(bands: zeroBands, withDelay: 0.5)
+        }
     }
 
     /// Called when Flutter stops listening to the event stream.

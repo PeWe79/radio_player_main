@@ -27,6 +27,7 @@ class RadioPlayerService: NSObject {
     private var isVisualizerEnabled = true
     weak var visualizerDelegate: RadioPlayerVisualizerDelegate?
     private var tapProcessingFormat: AudioStreamBasicDescription?
+    static let visualizerBandsCount = 16
 
     var parseStreamMetadata: Bool = true
     var lookupOnlineArtwork: Bool = false
@@ -296,7 +297,7 @@ class RadioPlayerService: NSObject {
             playerItem.audioMix = nil
             return
         }
-        
+
         // Create the tap with the appropriate callbacks.
         var callbacks = MTAudioProcessingTapCallbacks(
             version: kMTAudioProcessingTapCallbacksVersion_0,
@@ -357,7 +358,20 @@ class RadioPlayerService: NSObject {
         
         // Apply the audioMix to the playerItem.
         playerItem.audioMix = audioMix
-}
+    }
+
+    /// Forwards custom visualizer data to the delegate.
+    public func sendVisualizerData(bands: [Int], withDelay delay: TimeInterval = 0) {
+        if delay > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.visualizerDelegate?.didProcessFft(bands: bands)
+            }
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                self?.visualizerDelegate?.didProcessFft(bands: bands)
+            }
+        }
+    }
 }
 
 /// This extension handles timed metadata received from the audio stream.
