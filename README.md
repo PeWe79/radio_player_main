@@ -76,7 +76,7 @@ To completely stop playback, remove the media notification, and reset the player
 RadioPlayer.reset();
 ```
 
-### Listening to Playback State
+### Playback State
 
 Subscribe to `playbackStateStream` to get updates on the player's state.
 
@@ -94,7 +94,7 @@ RadioPlayer.playbackStateStream.listen((value) {
 });
 ```
 
-### Listening to Metadata
+### Metadata
 
 Subscribe to `metadataStream` to receive metadata updates from the stream (artist, title, artwork).
 
@@ -159,6 +159,32 @@ The process involves two steps:
     });
     ```
 
+###  Audio Visualizer
+
+The plugin can process the audio stream in real-time to provide the data needed to create an audio visualizer. This can consume additional resources, so it is recommended to enable it only when the visualizer is visible to the user.
+
+    ```dart
+    // Emits a `List<int>` of 16 frequency band amplitudes (0-255) from low to high.
+    late StreamSubscription<List<int>> _visualizerSubscription;
+    List<int>? _visualizerData;
+    
+    @override
+    void initState() {
+      super.initState();
+      RadioPlayer.setVisualizerEnabled(true);
+      _visualizerSubscription = RadioPlayer.visualizerStream.listen((value) {
+        setState(() { _visualizerData = value; });
+      });
+    }
+    
+    @override
+    void dispose() {
+      _visualizerSubscription.cancel();
+      RadioPlayer.setVisualizerEnabled(false);
+      super.dispose();
+    }
+    ```
+      
 ### Volume Control
 
 For controlling the device's audio volume, it is currently recommended to use a dedicated plugin.
