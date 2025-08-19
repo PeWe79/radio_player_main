@@ -45,8 +45,8 @@ class _RadioPlayerExampleState extends State<RadioPlayerExample> {
     // Set the initial radio station.
     RadioPlayer.setStation(
       title: 'Radio Player',
-      url: 'http://stream-uk1.radioparadise.com/aac-320',
-      //url: 'http://ice1.somafm.com/groovesalad-128-mp3',
+      //url: 'http://stream-uk1.radioparadise.com/aac-320',
+      url: 'http://ice1.somafm.com/groovesalad-128-mp3',
       logoAssetPath: 'assets/cover.jpg',
     );
 
