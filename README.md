@@ -169,6 +169,7 @@ Since this feature consumes additional resources, it is recommended to enable it
 List<int>? _visualizerData;
 
 RadioPlayer.setVisualizerEnabled(true);
+
 RadioPlayer.visualizerStream.listen((value) {
     setState(() { _visualizerData = value; });
 });
