@@ -208,7 +208,7 @@ class RadioPlayer: NSObject, AVPlayerItemMetadataOutputPushDelegate {
         guard let term = (artist + " - " + track).addingPercentEncoding(withAllowedCharacters: .alphanumerics) 
         else { return artwork }
 
-        guard let url = URL(string: "https://itunes.apple.com/search?term=" + term + "&limit=1")
+        guard let url = URL(string: "https://itunes.apple.com/search?term=" + term + "&media=music&limit=1")
         else { return artwork }
 
         // Download content.
