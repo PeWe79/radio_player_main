@@ -299,7 +299,7 @@ class RadioPlayerService : Service(), Player.Listener {
 
             val response = runBlocking { 
                 GlobalScope.async { 
-                    URL("https://itunes.apple.com/search?term=" + term + "&limit=1").readText()
+                    URL("https://itunes.apple.com/search?term=" + term + "&media=music&limit=1").readText()
                 }.await()
             }
 
