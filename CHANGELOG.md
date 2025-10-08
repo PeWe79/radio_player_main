@@ -1,3 +1,7 @@
+## 1.7.2
+
+* Fix iTunes artwork parser.
+
 ## 1.7.1
 
 * Remove unnecessary import causing build error.
