@@ -342,7 +342,7 @@ class RadioPlayerService: NSObject {
             }
         )
 
-        var tap: Unmanaged<MTAudioProcessingTap>?
+        var tap: MTAudioProcessingTap?
         let status = MTAudioProcessingTapCreate(kCFAllocatorDefault, &callbacks, kMTAudioProcessingTapCreationFlag_PostEffects, &tap)
         
         guard status == noErr, let createdTap = tap else {
@@ -352,7 +352,7 @@ class RadioPlayerService: NSObject {
         // Create an audioMix and attach the tap.
         let audioMix = AVMutableAudioMix()
         let inputParameters = AVMutableAudioMixInputParameters(track: audioTrack)
-        inputParameters.audioTapProcessor = createdTap.takeRetainedValue()
+        inputParameters.audioTapProcessor = createdTap
         audioMix.inputParameters = [inputParameters]
         
         // Apply the audioMix to the playerItem.
